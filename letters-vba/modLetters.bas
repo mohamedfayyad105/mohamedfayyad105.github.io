@@ -303,13 +303,13 @@ Public Sub FormSearch(f As Object)
                 sDate = Txt(v(r, C_DATE))
                 hay = Norm(sSeq & "|" & sNo & "|" & comp & "|" & sTitle & "|" & sNotes & "|" & sDate)
                 If Len(q) = 0 Or InStr(1, hay, q, vbBinaryCompare) > 0 Then
-                    ' visual order (left->right): date, type, title, company, letter no, #, hidden row index
-                    res(k, 0) = sDate
-                    res(k, 1) = typ
-                    res(k, 2) = sTitle
-                    res(k, 3) = comp
-                    res(k, 4) = sNo
-                    res(k, 5) = sSeq
+                    ' list is right-to-left: first column is the rightmost
+                    res(k, 0) = sSeq
+                    res(k, 1) = sNo
+                    res(k, 2) = comp
+                    res(k, 3) = sTitle
+                    res(k, 4) = typ
+                    res(k, 5) = sDate
                     res(k, 6) = r
                     k = k + 1
                 End If
@@ -583,52 +583,52 @@ Private Sub BuildForm(vbp As Object)
     comp.Name = FORM_NAME
     On Error Resume Next
     comp.Properties("Caption").Value = U("0625 062F 062E 0627 0644 0020 0648 0627 0644 0628 062D 062B 0020 0641 064A 0020 0627 0644 062E 0637 0627 0628 0627 062A")
-    comp.Properties("Width").Value = 660
-    comp.Properties("Height").Value = 480
+    comp.Properties("Width").Value = 910
+    comp.Properties("Height").Value = 550
     comp.Properties("StartUpPosition").Value = 1
     comp.Properties("RightToLeft").Value = True
     On Error GoTo 0
     Set d = comp.Designer
 
-    ' --- input fields (right group / left group) ---
-    AddCtl d, "Forms.Label.1", "lblCompany", 548, 14, 90, 18, U("0627 0644 0634 0631 0643 0629 0020 002F 0020 0627 0644 062C 0647 0629")
-    Set c = AddCtl(d, "Forms.ComboBox.1", "cboCompany", 335, 12, 208, 22)
+    ' --- input fields: right pair (label L=775, input L=485) / left pair (label L=310, input L=15) ---
+    AddCtl d, "Forms.Label.1", "lblCompany", 775, 14, 105, 18, U("0627 0644 0634 0631 0643 0629 0020 002F 0020 0627 0644 062C 0647 0629")
+    Set c = AddCtl(d, "Forms.ComboBox.1", "cboCompany", 485, 12, 290, 22)
     On Error Resume Next
     c.Style = 0: c.MatchEntry = 1                  ' free text + auto-complete from previous companies
     On Error GoTo 0
 
-    AddCtl d, "Forms.Label.1", "lblType", 240, 14, 90, 18, U("0635 0627 062F 0631 0020 002F 0020 0648 0627 0631 062F")
-    Set c = AddCtl(d, "Forms.ComboBox.1", "cboType", 15, 12, 220, 22)
+    AddCtl d, "Forms.Label.1", "lblType", 310, 14, 105, 18, U("0635 0627 062F 0631 0020 002F 0020 0648 0627 0631 062F")
+    Set c = AddCtl(d, "Forms.ComboBox.1", "cboType", 15, 12, 290, 22)
     On Error Resume Next
     c.Style = 2                                    ' drop-down list only
     On Error GoTo 0
 
-    AddCtl d, "Forms.Label.1", "lblTitle", 548, 44, 90, 18, U("0639 0646 0648 0627 0646 0020 0627 0644 062E 0637 0627 0628")
-    AddCtl d, "Forms.TextBox.1", "txtTitle", 335, 42, 208, 22
+    AddCtl d, "Forms.Label.1", "lblTitle", 775, 46, 105, 18, U("0639 0646 0648 0627 0646 0020 0627 0644 062E 0637 0627 0628")
+    AddCtl d, "Forms.TextBox.1", "txtTitle", 485, 44, 290, 22
 
-    AddCtl d, "Forms.Label.1", "lblNotes", 240, 44, 90, 18, U("0645 0644 0627 062D 0638 0627 062A")
-    AddCtl d, "Forms.TextBox.1", "txtNotes", 15, 42, 220, 22
+    AddCtl d, "Forms.Label.1", "lblNotes", 310, 46, 105, 18, U("0645 0644 0627 062D 0638 0627 062A")
+    AddCtl d, "Forms.TextBox.1", "txtNotes", 15, 44, 290, 22
 
-    AddCtl d, "Forms.Label.1", "lblNo", 548, 74, 90, 18, U("0631 0642 0645 0020 0627 0644 062E 0637 0627 0628")
-    AddCtl d, "Forms.TextBox.1", "txtNo", 335, 72, 208, 22
+    AddCtl d, "Forms.Label.1", "lblNo", 775, 78, 105, 18, U("0631 0642 0645 0020 0627 0644 062E 0637 0627 0628")
+    AddCtl d, "Forms.TextBox.1", "txtNo", 485, 76, 290, 22
     d.Controls("lblNo").Visible = False
     d.Controls("txtNo").Visible = False
     d.Controls("txtNo").ControlTipText = U("0644 0644 062E 0637 0627 0628 0020 0627 0644 0648 0627 0631 062F 0020 0641 0642 0637 0020 002D 0020 0627 062E 062A 064A 0627 0631 064A 002E 0020 0627 062A 0631 0643 0647 0020 0641 0627 0631 063A 0627 0020 0644 064A 0628 0642 0649 0020 0627 0644 0631 0642 0645 0020 0627 0644 062A 0644 0642 0627 0626 064A 002E")
 
-    AddCtl d, "Forms.Label.1", "lblDate", 240, 74, 90, 18, U("062A 0627 0631 064A 062E 0020 064A 062F 0648 064A")
-    Set c = AddCtl(d, "Forms.TextBox.1", "txtDate", 15, 72, 220, 22)
+    AddCtl d, "Forms.Label.1", "lblDate", 310, 78, 105, 18, U("062A 0627 0631 064A 062E 0020 064A 062F 0648 064A")
+    Set c = AddCtl(d, "Forms.TextBox.1", "txtDate", 15, 76, 290, 22)
     c.ControlTipText = U("0627 062E 062A 064A 0627 0631 064A 0020 002D 0020 064A 0648 0645 002F 0634 0647 0631 002F 0633 0646 0629 002E 0020 0627 062A 0631 0643 0647 0020 0641 0627 0631 063A 0627 0020 0644 064A 0628 0642 0649 0020 0627 0644 062A 0627 0631 064A 062E 0020 0627 0644 062A 0644 0642 0627 0626 064A 002E")
-    Set c = AddCtl(d, "Forms.Label.1", "lblHint", 15, 95, 220, 12, U("0627 062E 062A 064A 0627 0631 064A 003A 0020 064A 0648 0645 002F 0634 0647 0631 002F 0633 0646 0629 0020 0020 0645 062B 0627 0644 0020 0032 0035 002F 0030 0033 002F 0032 0030 0032 0036"))
+    Set c = AddCtl(d, "Forms.Label.1", "lblHint", 15, 100, 290, 12, U("0627 062E 062A 064A 0627 0631 064A 003A 0020 064A 0648 0645 002F 0634 0647 0631 002F 0633 0646 0629 0020 0020 0645 062B 0627 0644 0020 0032 0035 002F 0030 0033 002F 0032 0030 0032 0036"))
     On Error Resume Next
     c.Font.Size = 8: c.ForeColor = &H808080
     On Error GoTo 0
 
     ' --- search row ---
-    AddCtl d, "Forms.Label.1", "lblSearch", 548, 114, 90, 18, U("0628 062D 062B 0020 0639 0646")
-    AddCtl d, "Forms.TextBox.1", "txtSearch", 335, 112, 208, 22
+    AddCtl d, "Forms.Label.1", "lblSearch", 775, 122, 105, 18, U("0628 062D 062B 0020 0639 0646")
+    AddCtl d, "Forms.TextBox.1", "txtSearch", 485, 120, 290, 22
     d.Controls("txtSearch").ControlTipText = U("062C 0632 0621 0020 0645 0646 0020 0627 0644 0634 0631 0643 0629 0020 0623 0648 0020 0627 0644 0631 0642 0645 0020 0623 0648 0020 0627 0644 0639 0646 0648 0627 0646 0020 0623 0648 0020 0627 0644 0645 0644 0627 062D 0638 0627 062A 0020 0623 0648 0020 0627 0644 062A 0627 0631 064A 062E")
-    AddCtl d, "Forms.Label.1", "lblFilter", 240, 114, 90, 18, U("062A 0635 0641 064A 0629 0020 0627 0644 0646 0648 0639")
-    AddCtl d, "Forms.ComboBox.1", "cboFilter", 15, 112, 220, 22
+    AddCtl d, "Forms.Label.1", "lblFilter", 310, 122, 105, 18, U("062A 0635 0641 064A 0629 0020 0627 0644 0646 0648 0639")
+    AddCtl d, "Forms.ComboBox.1", "cboFilter", 15, 120, 290, 22
     On Error Resume Next
     d.Controls("cboFilter").Style = 2
     On Error GoTo 0
@@ -638,29 +638,29 @@ Private Sub BuildForm(vbp As Object)
     names = Array("cmdAdd", "cmdSearch", "cmdSave", "cmdClear", "cmdDelete", "cmdClose")
     caps = Array(U("0625 0636 0627 0641 0629"), U("0628 062D 062B"), U("062D 0641 0638 0020 0627 0644 062A 0639 062F 064A 0644"), U("0645 0633 062D 0020 0627 0644 062E 0627 0646 0627 062A"), U("062D 0630 0641"), U("0625 063A 0644 0627 0642"))
     For i = 0 To 5
-        Set c = AddCtl(d, "Forms.CommandButton.1", CStr(names(i)), 543 - i * 103, 146, 95, 28, CStr(caps(i)))
+        Set c = AddCtl(d, "Forms.CommandButton.1", CStr(names(i)), 755 - i * 135, 154, 125, 30, CStr(caps(i)))
     Next i
 
-    ' --- column headers (same visual order as the list columns) ---
-    heads = Array(U("0627 0644 062A 0627 0631 064A 062E"), U("0627 0644 0646 0648 0639"), U("0639 0646 0648 0627 0646 0020 0627 0644 062E 0637 0627 0628"), U("0627 0644 0634 0631 0643 0629 0020 002F 0020 0627 0644 062C 0647 0629"), U("0631 0642 0645 0020 0627 0644 062E 0637 0627 0628"), U("0023"))
-    widths = Array(80, 60, 210, 140, 70, 45)
-    x = 17
+    ' --- column headers: the list is right-to-left, so the first column sits at the right edge ---
+    heads = Array(U("0023"), U("0631 0642 0645 0020 0627 0644 062E 0637 0627 0628"), U("0627 0644 0634 0631 0643 0629 0020 002F 0020 0627 0644 062C 0647 0629"), U("0639 0646 0648 0627 0646 0020 0627 0644 062E 0637 0627 0628"), U("0627 0644 0646 0648 0639"), U("0627 0644 062A 0627 0631 064A 062E"))
+    widths = Array(45, 135, 170, 330, 60, 90)
+    x = 877                                        ' right edge of the list's inner area
     For i = 0 To 5
-        Set c = AddCtl(d, "Forms.Label.1", "lblHead" & i, x, 184, widths(i), 16, CStr(heads(i)))
+        x = x - widths(i)
+        Set c = AddCtl(d, "Forms.Label.1", "lblHead" & i, x, 194, widths(i), 18, CStr(heads(i)))
         On Error Resume Next
         c.TextAlign = 2: c.BackColor = &HE0E0E0: c.BorderStyle = 1: c.Font.Bold = True
         On Error GoTo 0
-        x = x + widths(i)
     Next i
 
-    Set c = AddCtl(d, "Forms.ListBox.1", "lstResults", 15, 202, 623, 200)
+    Set c = AddCtl(d, "Forms.ListBox.1", "lstResults", 15, 214, 865, 270)
     On Error Resume Next
-    c.RightToLeft = False                          ' columns keep a fixed left-to-right order
+    c.RightToLeft = True
     c.ColumnCount = 7
-    c.ColumnWidths = "80;60;210;140;70;45;0"
+    c.ColumnWidths = "45;135;170;330;60;90;0"
     On Error GoTo 0
 
-    Set c = AddCtl(d, "Forms.Label.1", "lblCount", 15, 408, 623, 16, U("0639 062F 062F 0020 0627 0644 0646 062A 0627 0626 062C 003A 0020 0030"))
+    Set c = AddCtl(d, "Forms.Label.1", "lblCount", 15, 490, 865, 16, U("0639 062F 062F 0020 0627 0644 0646 062A 0627 0626 062C 003A 0020 0030"))
 
     mStep = "form code"
     comp.CodeModule.AddFromString FormCode()
