@@ -13,6 +13,15 @@ Private Const FORM_NAME As String = "frmLetters"
 Private Const BTN_NAME As String = "btnLettersForm"
 Private Const MB_RTL As Long = 1572864          ' right-to-left reading + right aligned
 
+' brand colours (BGR long values), taken from the logo's dark teal
+Private Const CLR_TEAL As Long = &H3E3500          ' RGB(0,53,62)
+Private Const CLR_TEAL_MID As Long = &H756B0F      ' RGB(15,107,117)
+Private Const CLR_BG As Long = &HF5F4EE            ' RGB(238,244,245)
+Private Const CLR_PALE As Long = &HE6E4D6          ' RGB(214,228,230)
+Private Const CLR_LINE As Long = &HD5D2BE          ' RGB(190,210,213)
+Private Const CLR_DANGER As Long = &H403DA6        ' RGB(166,61,64)
+Private Const CLR_WHITE As Long = &HFFFFFF
+
 ' column positions inside Table2
 Private Const C_SEQ As Long = 1
 Private Const C_NO As Long = 2
@@ -250,9 +259,7 @@ Public Sub FormClear(f As Object)
     f.cboCompany.Value = ""
     f.txtTitle.Value = ""
     f.cboType.ListIndex = -1
-    f.txtNotes.Value = ""
     f.txtNo.Value = ""
-    f.txtDate.Value = ""
     f.lstResults.ListIndex = -1
     FormTypeChanged f
 End Sub
@@ -362,8 +369,6 @@ Public Sub FormPick(f As Object)
     SetType f, Txt(rw.Cells(1, C_TYPE).Value)
     f.cboCompany.Value = Txt(rw.Cells(1, C_COMP).Value)
     f.txtTitle.Value = Txt(rw.Cells(1, C_TITLE).Value)
-    f.txtNotes.Value = Txt(rw.Cells(1, C_NOTES).Value)
-    f.txtDate.Value = Txt(rw.Cells(1, C_DATE).Value)
     mRow = r
     mOrigComp = Txt(rw.Cells(1, C_COMP).Value)
     mOrigTitle = Txt(rw.Cells(1, C_TITLE).Value)
@@ -371,21 +376,12 @@ Public Sub FormPick(f As Object)
     mOrigNo = Txt(rw.Cells(1, C_NO).Value)
     If mOrigNo = U("0628 062F 0648 0646 0020 0631 0642 0645") Then mOrigNo = ""       ' the formula's placeholder for incoming letters
     f.txtNo.Value = mOrigNo
-    mOrigDate = Txt(rw.Cells(1, C_DATE).Value)
 End Sub
 
 Public Sub FormAdd(f As Object)
-    Dim lo As ListObject, r As Long, rw As Range, d As Date, hasDate As Boolean
+    Dim lo As ListObject, r As Long, rw As Range
     Dim sNo As String, isNew As Boolean, oldAuto As Boolean, oldScr As Boolean
     If Not Validate(f) Then Exit Sub
-    hasDate = (Len(Trim$(f.txtDate.Value)) > 0)
-    If hasDate Then
-        If Not ParseDate(f.txtDate.Value, d) Then
-            MsgBox U("0635 064A 063A 0629 0020 0627 0644 062A 0627 0631 064A 062E 0020 063A 064A 0631 0020 0635 062D 064A 062D 0629 002E 0020 0627 0633 062A 062E 062F 0645 0020 064A 0648 0645 002F 0634 0647 0631 002F 0633 0646 0629 0020 0645 062B 0644 0020 0032 0035 002F 0030 0033 002F 0032 0030 0032 0036 002E"), vbExclamation + MB_RTL
-            f.txtDate.SetFocus
-            Exit Sub
-        End If
-    End If
     Set lo = GetTable()
     If lo Is Nothing Then Exit Sub
     oldScr = Application.ScreenUpdating
@@ -401,9 +397,7 @@ Public Sub FormAdd(f As Object)
     rw.Cells(1, C_COMP).Value = Trim$(f.cboCompany.Value)
     rw.Cells(1, C_TITLE).Value = Trim$(f.txtTitle.Value)
     rw.Cells(1, C_TYPE).Value = Trim$(f.cboType.Value)
-    If Len(Trim$(f.txtNotes.Value)) > 0 Then rw.Cells(1, C_NOTES).Value = Trim$(f.txtNotes.Value)
     If IsIncoming(f) And Len(Trim$(f.txtNo.Value)) > 0 Then rw.Cells(1, C_NO).Value = Trim$(f.txtNo.Value)
-    If hasDate Then rw.Cells(1, C_DATE).Value = d
     If isNew Then                                  ' a freshly added row may lack the formulas
         If Not rw.Cells(1, C_SEQ).HasFormula Then RestoreFormula lo, r, C_SEQ
         If Not rw.Cells(1, C_NO).HasFormula And Len(Txt(rw.Cells(1, C_NO).Value)) = 0 Then RestoreFormula lo, r, C_NO
@@ -423,25 +417,13 @@ Fail:
 End Sub
 
 Public Sub FormSave(f As Object)
-    Dim lo As ListObject, rw As Range, d As Date, sDate As String, sNo As String
-    Dim oldScr As Boolean, warn As String, dateChanged As Boolean, d0 As Date
+    Dim lo As ListObject, rw As Range, sNo As String
+    Dim oldScr As Boolean, warn As String
     If mRow = 0 Then
         MsgBox U("0627 062E 062A 0631 0020 062E 0637 0627 0628 0627 0020 0645 0646 0020 0627 0644 0642 0627 0626 0645 0629 0020 0623 0648 0644 0627 002E"), vbExclamation + MB_RTL
         Exit Sub
     End If
     If Not Validate(f) Then Exit Sub
-    sDate = Trim$(f.txtDate.Value)
-    dateChanged = (sDate <> mOrigDate)
-    If dateChanged And Len(sDate) > 0 Then
-        If Not ParseDate(sDate, d) Then
-            MsgBox U("0635 064A 063A 0629 0020 0627 0644 062A 0627 0631 064A 062E 0020 063A 064A 0631 0020 0635 062D 064A 062D 0629 002E 0020 0627 0633 062A 062E 062F 0645 0020 064A 0648 0645 002F 0634 0647 0631 002F 0633 0646 0629 0020 0645 062B 0644 0020 0032 0035 002F 0030 0033 002F 0032 0030 0032 0036 002E"), vbExclamation + MB_RTL
-            f.txtDate.SetFocus
-            Exit Sub
-        End If
-        If ParseDate(mOrigDate, d0) Then
-            If d0 = d Then dateChanged = False     ' same date typed in another format
-        End If
-    End If
     Set lo = GetTable()
     If lo Is Nothing Then Exit Sub
     If Not RowStillValid(lo) Then Exit Sub
@@ -452,11 +434,6 @@ Public Sub FormSave(f As Object)
     rw.Cells(1, C_COMP).Value = Trim$(f.cboCompany.Value)
     rw.Cells(1, C_TITLE).Value = Trim$(f.txtTitle.Value)
     rw.Cells(1, C_TYPE).Value = Trim$(f.cboType.Value)
-    If Len(Trim$(f.txtNotes.Value)) > 0 Then
-        rw.Cells(1, C_NOTES).Value = Trim$(f.txtNotes.Value)
-    Else
-        rw.Cells(1, C_NOTES).ClearContents
-    End If
     ' letter number (column B): only touched if the user changed it, or the type is now outgoing
     sNo = Trim$(f.txtNo.Value)
     If IsIncoming(f) Then
@@ -469,14 +446,6 @@ Public Sub FormSave(f As Object)
         End If
     ElseIf Norm(mOrigType) <> Norm(Trim$(f.cboType.Value)) And Not rw.Cells(1, C_NO).HasFormula Then   ' type just changed to outgoing
         If Not RestoreFormula(lo, mRow, C_NO) Then warn = warn & U("062A 0639 0630 0631 062A 0020 0625 0639 0627 062F 0629 0020 0645 0639 0627 062F 0644 0629 0020 0631 0642 0645 0020 0627 0644 062E 0637 0627 0628 002E") & vbCrLf
-    End If
-    ' date (column F): only touched if the user changed it
-    If dateChanged Then
-        If Len(sDate) = 0 Then
-            If Not RestoreFormula(lo, mRow, C_DATE) Then warn = warn & U("062A 0639 0630 0631 062A 0020 0625 0639 0627 062F 0629 0020 0645 0639 0627 062F 0644 0629 0020 0627 0644 062A 0627 0631 064A 062E 002E") & vbCrLf
-        Else
-            rw.Cells(1, C_DATE).Value = d
-        End If
     End If
     rw.Calculate
     Application.ScreenUpdating = oldScr
@@ -592,6 +561,20 @@ Private Function IsLettersForm(comp As Object) As Boolean
     If n = 0 And comp.Name Like "UserForm#*" Then IsLettersForm = True
 End Function
 
+Private Sub Paint(c As Object, ByVal back As Long, ByVal fore As Long, Optional ByVal bold As Boolean = False)
+    On Error Resume Next
+    c.BackColor = back
+    c.ForeColor = fore
+    If bold Then c.Font.Bold = True
+End Sub
+
+Private Sub Ink(c As Object)                          ' transparent label in brand colour
+    On Error Resume Next
+    c.BackStyle = 0
+    c.ForeColor = CLR_TEAL
+    c.Font.Bold = True
+End Sub
+
 Private Sub BuildForm(vbp As Object)
     Dim comp As Object, d As Object, c As Object, i As Long, k As Long, x As Single
     Dim heads As Variant, widths As Variant
@@ -620,61 +603,70 @@ Private Sub BuildForm(vbp As Object)
     On Error Resume Next
     comp.Properties("Caption").Value = U("0625 062F 062E 0627 0644 0020 0648 0627 0644 0628 062D 062B 0020 0641 064A 0020 0627 0644 062E 0637 0627 0628 0627 062A")
     comp.Properties("Width").Value = 910
-    comp.Properties("Height").Value = 550
+    comp.Properties("Height").Value = 545
     comp.Properties("StartUpPosition").Value = 1
     comp.Properties("RightToLeft").Value = True
+    comp.Properties("BackColor").Value = CLR_BG
     On Error GoTo 0
     Set d = comp.Designer
 
-    ' --- input fields: right pair (label L=775, input L=485) / left pair (label L=310, input L=15) ---
-    AddCtl d, "Forms.Label.1", "lblCompany", 775, 14, 105, 18, U("0627 0644 0634 0631 0643 0629 0020 002F 0020 0627 0644 062C 0647 0629")
-    Set c = AddCtl(d, "Forms.ComboBox.1", "cboCompany", 485, 12, 290, 22)
+    ' --- brand header band ---
+    Set c = AddCtl(d, "Forms.Label.1", "lblBand", 0, 0, 910, 44)
+    Paint c, CLR_TEAL, CLR_WHITE
+    Set c = AddCtl(d, "Forms.Label.1", "lblBrand", 440, 9, 440, 26, U("0634 0631 0643 0629 0020 0639 0644 064A 0020 0627 0628 0631 0627 0647 064A 0645 0020 0627 0644 0631 0628 064A 0634 064A 0020 0627 0644 0639 0642 0627 0631 064A 0629"))
+    Paint c, CLR_TEAL, CLR_WHITE, True
+    On Error Resume Next
+    c.BackStyle = 0: c.Font.Size = 16
+    On Error GoTo 0
+    Set c = AddCtl(d, "Forms.Label.1", "lblSub", 15, 13, 380, 20, U("0627 0644 062E 0637 0627 0628 0627 062A 0020 0627 0644 0635 0627 062F 0631 0629 0020 0648 0627 0644 0648 0627 0631 062F 0629"))
+    Paint c, CLR_TEAL, &HD6D2B4
+    On Error Resume Next
+    c.BackStyle = 0: c.TextAlign = 1: c.Font.Size = 11
+    On Error GoTo 0
+
+    ' --- inputs: right pair (label L=775, input L=485) / left pair (label L=310, input L=15) ---
+    Ink AddCtl(d, "Forms.Label.1", "lblCompany", 775, 62, 105, 18, U("0627 0644 0634 0631 0643 0629 0020 002F 0020 0627 0644 062C 0647 0629"))
+    Set c = AddCtl(d, "Forms.ComboBox.1", "cboCompany", 485, 60, 290, 22)
     On Error Resume Next
     c.Style = 0: c.MatchEntry = 1                  ' free text + auto-complete from previous companies
     On Error GoTo 0
 
-    AddCtl d, "Forms.Label.1", "lblType", 310, 14, 105, 18, U("0635 0627 062F 0631 0020 002F 0020 0648 0627 0631 062F")
-    Set c = AddCtl(d, "Forms.ComboBox.1", "cboType", 15, 12, 290, 22)
+    Ink AddCtl(d, "Forms.Label.1", "lblType", 310, 62, 105, 18, U("0635 0627 062F 0631 0020 002F 0020 0648 0627 0631 062F"))
+    Set c = AddCtl(d, "Forms.ComboBox.1", "cboType", 15, 60, 290, 22)
     On Error Resume Next
     c.Style = 2                                    ' drop-down list only
     On Error GoTo 0
 
-    AddCtl d, "Forms.Label.1", "lblTitle", 775, 46, 105, 18, U("0639 0646 0648 0627 0646 0020 0627 0644 062E 0637 0627 0628")
-    AddCtl d, "Forms.TextBox.1", "txtTitle", 485, 44, 290, 22
+    Ink AddCtl(d, "Forms.Label.1", "lblTitle", 775, 96, 105, 18, U("0639 0646 0648 0627 0646 0020 0627 0644 062E 0637 0627 0628"))
+    AddCtl d, "Forms.TextBox.1", "txtTitle", 485, 94, 290, 22
 
-    AddCtl d, "Forms.Label.1", "lblNotes", 310, 46, 105, 18, U("0645 0644 0627 062D 0638 0627 062A")
-    AddCtl d, "Forms.TextBox.1", "txtNotes", 15, 44, 290, 22
-
-    AddCtl d, "Forms.Label.1", "lblNo", 775, 78, 105, 18, U("0631 0642 0645 0020 0627 0644 062E 0637 0627 0628")
-    AddCtl d, "Forms.TextBox.1", "txtNo", 485, 76, 290, 22
+    Ink AddCtl(d, "Forms.Label.1", "lblNo", 310, 96, 105, 18, U("0631 0642 0645 0020 0627 0644 062E 0637 0627 0628"))
+    AddCtl d, "Forms.TextBox.1", "txtNo", 15, 94, 290, 22
     d.Controls("lblNo").Visible = False
     d.Controls("txtNo").Visible = False
     d.Controls("txtNo").ControlTipText = U("0644 0644 062E 0637 0627 0628 0020 0627 0644 0648 0627 0631 062F 0020 0641 0642 0637 0020 002D 0020 0627 062E 062A 064A 0627 0631 064A 002E 0020 0627 062A 0631 0643 0647 0020 0641 0627 0631 063A 0627 0020 0644 064A 0628 0642 0649 0020 0627 0644 0631 0642 0645 0020 0627 0644 062A 0644 0642 0627 0626 064A 002E")
 
-    AddCtl d, "Forms.Label.1", "lblDate", 310, 78, 105, 18, U("062A 0627 0631 064A 062E 0020 064A 062F 0648 064A")
-    Set c = AddCtl(d, "Forms.TextBox.1", "txtDate", 15, 76, 290, 22)
-    c.ControlTipText = U("0627 062E 062A 064A 0627 0631 064A 0020 002D 0020 064A 0648 0645 002F 0634 0647 0631 002F 0633 0646 0629 002E 0020 0627 062A 0631 0643 0647 0020 0641 0627 0631 063A 0627 0020 0644 064A 0628 0642 0649 0020 0627 0644 062A 0627 0631 064A 062E 0020 0627 0644 062A 0644 0642 0627 0626 064A 002E")
-    Set c = AddCtl(d, "Forms.Label.1", "lblHint", 15, 100, 290, 12, U("0627 062E 062A 064A 0627 0631 064A 003A 0020 064A 0648 0645 002F 0634 0647 0631 002F 0633 0646 0629 0020 0020 0645 062B 0627 0644 0020 0032 0035 002F 0030 0033 002F 0032 0030 0032 0036"))
-    On Error Resume Next
-    c.Font.Size = 8: c.ForeColor = &H808080
-    On Error GoTo 0
-
     ' --- search row ---
-    AddCtl d, "Forms.Label.1", "lblSearch", 775, 122, 105, 18, U("0628 062D 062B 0020 0639 0646")
-    AddCtl d, "Forms.TextBox.1", "txtSearch", 485, 120, 290, 22
+    Set c = AddCtl(d, "Forms.Label.1", "lblRule", 15, 130, 865, 1)
+    Paint c, CLR_LINE, CLR_LINE
+    Ink AddCtl(d, "Forms.Label.1", "lblSearch", 775, 146, 105, 18, U("0628 062D 062B 0020 0639 0646"))
+    AddCtl d, "Forms.TextBox.1", "txtSearch", 485, 144, 290, 22
     d.Controls("txtSearch").ControlTipText = U("062C 0632 0621 0020 0645 0646 0020 0627 0644 0634 0631 0643 0629 0020 0623 0648 0020 0627 0644 0631 0642 0645 0020 0623 0648 0020 0627 0644 0639 0646 0648 0627 0646 0020 0623 0648 0020 0627 0644 0645 0644 0627 062D 0638 0627 062A 0020 0623 0648 0020 0627 0644 062A 0627 0631 064A 062E")
-    AddCtl d, "Forms.Label.1", "lblFilter", 310, 122, 105, 18, U("062A 0635 0641 064A 0629 0020 0627 0644 0646 0648 0639")
-    AddCtl d, "Forms.ComboBox.1", "cboFilter", 15, 120, 290, 22
+    Ink AddCtl(d, "Forms.Label.1", "lblFilter", 310, 146, 105, 18, U("062A 0635 0641 064A 0629 0020 0627 0644 0646 0648 0639"))
+    AddCtl d, "Forms.ComboBox.1", "cboFilter", 15, 144, 290, 22
     On Error Resume Next
     d.Controls("cboFilter").Style = 2
     On Error GoTo 0
 
     ' --- buttons, right to left ---
-    Dim caps As Variant, names As Variant
+    Dim caps As Variant, names As Variant, backs As Variant, fores As Variant
     names = Array("cmdAdd", "cmdSearch", "cmdSave", "cmdClear", "cmdDelete", "cmdClose")
     caps = Array(U("0625 0636 0627 0641 0629"), U("0628 062D 062B"), U("062D 0641 0638 0020 0627 0644 062A 0639 062F 064A 0644"), U("0645 0633 062D 0020 0627 0644 062E 0627 0646 0627 062A"), U("062D 0630 0641"), U("0625 063A 0644 0627 0642"))
+    backs = Array(CLR_TEAL, CLR_TEAL_MID, CLR_TEAL, CLR_PALE, CLR_DANGER, CLR_PALE)
+    fores = Array(CLR_WHITE, CLR_WHITE, CLR_WHITE, CLR_TEAL, CLR_WHITE, CLR_TEAL)
     For i = 0 To 5
-        Set c = AddCtl(d, "Forms.CommandButton.1", CStr(names(i)), 755 - i * 135, 154, 125, 30, CStr(caps(i)))
+        Set c = AddCtl(d, "Forms.CommandButton.1", CStr(names(i)), 755 - i * 135, 182, 125, 32, CStr(caps(i)))
+        Paint c, CLng(backs(i)), CLng(fores(i)), True
     Next i
 
     ' --- column headers: the list is right-to-left, so the first column sits at the right edge ---
@@ -683,13 +675,14 @@ Private Sub BuildForm(vbp As Object)
     x = 877                                        ' right edge of the list's inner area
     For i = 0 To 5
         x = x - widths(i)
-        Set c = AddCtl(d, "Forms.Label.1", "lblHead" & i, x, 194, widths(i), 18, CStr(heads(i)))
+        Set c = AddCtl(d, "Forms.Label.1", "lblHead" & i, x, 228, widths(i), 20, CStr(heads(i)))
+        Paint c, CLR_TEAL, CLR_WHITE, True
         On Error Resume Next
-        c.TextAlign = 2: c.BackColor = &HE0E0E0: c.BorderStyle = 1: c.Font.Bold = True
+        c.TextAlign = 2: c.BorderStyle = 0
         On Error GoTo 0
     Next i
 
-    Set c = AddCtl(d, "Forms.ListBox.1", "lstResults", 15, 214, 865, 270)
+    Set c = AddCtl(d, "Forms.ListBox.1", "lstResults", 15, 248, 865, 232)
     On Error Resume Next
     c.RightToLeft = True
     c.ColumnCount = 7
@@ -702,13 +695,14 @@ Private Sub BuildForm(vbp As Object)
         x = x - widths(i)
         mStep = "grid line " & i
         Set c = d.Controls.Add("Forms.Label.1", "lnSep" & i, True)
-        c.Left = x: c.Top = 216: c.Width = 1: c.Height = 266
+        c.Left = x: c.Top = 250: c.Width = 1: c.Height = 228
         On Error Resume Next
-        c.Caption = "": c.BackColor = &HC0C0C0: c.BorderStyle = 0: c.SpecialEffect = 0
+        c.Caption = "": c.BackColor = CLR_LINE: c.BorderStyle = 0: c.SpecialEffect = 0
         On Error GoTo 0
     Next i
 
-    Set c = AddCtl(d, "Forms.Label.1", "lblCount", 15, 490, 865, 16, U("0639 062F 062F 0020 0627 0644 0646 062A 0627 0626 062C 003A 0020 0030"))
+    Set c = AddCtl(d, "Forms.Label.1", "lblCount", 15, 488, 865, 16, U("0639 062F 062F 0020 0627 0644 0646 062A 0627 0626 062C 003A 0020 0030"))
+    Ink c
 
     mStep = "form code"
     comp.CodeModule.AddFromString FormCode()
