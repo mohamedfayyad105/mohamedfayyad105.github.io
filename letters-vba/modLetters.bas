@@ -696,6 +696,18 @@ Private Sub BuildForm(vbp As Object)
     c.ColumnWidths = "45;135;170;330;60;90;0"
     On Error GoTo 0
 
+    ' --- vertical grid lines between the columns (a ListBox cannot draw them itself) ---
+    x = 877
+    For i = 0 To 4
+        x = x - widths(i)
+        mStep = "grid line " & i
+        Set c = d.Controls.Add("Forms.Label.1", "lnSep" & i, True)
+        c.Left = x: c.Top = 216: c.Width = 1: c.Height = 266
+        On Error Resume Next
+        c.Caption = "": c.BackColor = &HC0C0C0: c.BorderStyle = 0: c.SpecialEffect = 0
+        On Error GoTo 0
+    Next i
+
     Set c = AddCtl(d, "Forms.Label.1", "lblCount", 15, 490, 865, 16, U("0639 062F 062F 0020 0627 0644 0646 062A 0627 0626 062C 003A 0020 0030"))
 
     mStep = "form code"
