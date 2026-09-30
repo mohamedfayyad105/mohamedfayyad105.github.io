@@ -29,6 +29,7 @@ Private mOrigDate As String
 Private mOrigComp As String
 Private mOrigTitle As String
 Private mOrigType As String
+Private mStep As String                 ' last setup step, shown if setup fails
 
 ' ---------------------------------------------------------------
 ' helpers
@@ -525,15 +526,29 @@ Public Sub SetupLetters()
         Exit Sub
     End If
     If GetTable() Is Nothing Then Exit Sub
+
+    On Error GoTo FormFail
     BuildForm vbp
+
+    On Error GoTo BtnFail
+    mStep = "button"
     AddSheetButton
     MsgBox U("062A 0645 0020 0625 0646 0634 0627 0621 0020 0627 0644 0646 0627 0641 0630 0629 0020 0648 0627 0644 0632 0631 002E 0020 0627 0636 063A 0637 0020 0632 0631 0020 0625 062F 062E 0627 0644 0020 002F 0020 0628 062D 062B 0020 0641 064A 0020 0627 0644 0635 0641 0020 0627 0644 0623 0648 0644 002E"), vbInformation + MB_RTL
+    Exit Sub
+
+FormFail:
+    MsgBox U("062A 0639 0630 0631 0020 0625 0646 0634 0627 0621 0020 0627 0644 0646 0627 0641 0630 0629 002E") & vbCrLf & U("0627 0644 062E 0637 0648 0629 003A 0020") & mStep & vbCrLf & U("0631 0642 0645 0020 0627 0644 062E 0637 0623 003A 0020") & Err.Number & vbCrLf & Err.Description, vbCritical + MB_RTL
+    Exit Sub
+
+BtnFail:
+    MsgBox U("062A 0645 0020 0625 0646 0634 0627 0621 0020 0627 0644 0646 0627 0641 0630 0629 060C 0020 0644 0643 0646 0020 062A 0639 0630 0631 0020 0625 0646 0634 0627 0621 0020 0627 0644 0632 0631 002E") & vbCrLf & U("0627 0644 062E 0637 0648 0629 003A 0020") & mStep & vbCrLf & U("0631 0642 0645 0020 0627 0644 062E 0637 0623 003A 0020") & Err.Number & vbCrLf & Err.Description & vbCrLf & vbCrLf & U("0623 0646 0634 0626 0020 0632 0631 0627 0020 064A 062F 0648 064A 0627 003A 0020 0645 0637 0648 0631 0020 003E 0020 0625 062F 0631 0627 062C 0020 003E 0020 0632 0631 060C 0020 0648 0627 0631 0628 0637 0647 0020 0628 0627 0644 0645 0627 0643 0631 0648 0020 0053 0068 006F 0077 004C 0065 0074 0074 0065 0072 0073 0046 006F 0072 006D 002E"), vbExclamation + MB_RTL
 End Sub
 
 Private Function AddCtl(d As Object, ByVal progId As String, ByVal nm As String, _
                         ByVal l As Single, ByVal t As Single, ByVal w As Single, ByVal h As Single, _
                         Optional ByVal cap As String = "") As Object
     Dim c As Object
+    mStep = "control " & nm
     Set c = d.Controls.Add(progId, nm, True)
     c.Left = l: c.Top = t: c.Width = w: c.Height = h
     On Error Resume Next                          ' not every property exists on every control type
@@ -550,12 +565,21 @@ Private Sub BuildForm(vbp As Object)
     Dim comp As Object, d As Object, c As Object, i As Long, x As Single
     Dim heads As Variant, widths As Variant
 
-    On Error Resume Next
-    Set comp = vbp.VBComponents(FORM_NAME)
-    If Not comp Is Nothing Then vbp.VBComponents.Remove comp
-    On Error GoTo 0
+    mStep = "remove old form"
+    For i = vbp.VBComponents.Count To 1 Step -1
+        Set comp = vbp.VBComponents(i)
+        If comp.Type = 3 Then                       ' MSForm
+            If comp.Name = FORM_NAME Then
+                vbp.VBComponents.Remove comp
+            ElseIf comp.Name Like "UserForm#*" Then
+                If comp.Designer.Controls.Count = 0 Then vbp.VBComponents.Remove comp   ' empty leftover
+            End If
+        End If
+    Next i
 
+    mStep = "add form"
     Set comp = vbp.VBComponents.Add(3)             ' vbext_ct_MSForm
+    mStep = "rename form"
     comp.Name = FORM_NAME
     On Error Resume Next
     comp.Properties("Caption").Value = U("0625 062F 062E 0627 0644 0020 0648 0627 0644 0628 062D 062B 0020 0641 064A 0020 0627 0644 062E 0637 0627 0628 0627 062A")
@@ -638,6 +662,7 @@ Private Sub BuildForm(vbp As Object)
 
     Set c = AddCtl(d, "Forms.Label.1", "lblCount", 15, 408, 623, 16, U("0639 062F 062F 0020 0627 0644 0646 062A 0627 0626 062C 003A 0020 0030"))
 
+    mStep = "form code"
     comp.CodeModule.AddFromString FormCode()
 End Sub
 
@@ -678,25 +703,29 @@ End Function
 
 Private Sub AddSheetButton()
     Dim ws As Worksheet, lastCol As Long, ma As Range, nxt As Range, shp As Shape, h As Single
+    mStep = "button: sheet"
     Set ws = ThisWorkbook.Worksheets(U("0627 0644 0639 0642 0627 0631 064A 0629"))
+    mStep = "button: delete old"
     On Error Resume Next
     ws.Shapes(BTN_NAME).Delete
     On Error GoTo 0
+    mStep = "button: position"
+    On Error Resume Next
     lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
-    If Len(Trim$(CStr(ws.Cells(1, lastCol).Value))) = 0 And Not ws.Cells(1, lastCol).MergeCells Then
-        Set nxt = ws.Cells(1, 1)
-    Else
-        Set ma = ws.Cells(1, lastCol).MergeArea
-        Set nxt = ws.Cells(1, ma.Column + ma.Columns.Count)
-    End If
+    Set ma = ws.Cells(1, lastCol).MergeArea
+    Set nxt = ws.Cells(1, ma.Column + ma.Columns.Count)
+    On Error GoTo 0
+    If nxt Is Nothing Then Set nxt = ws.Range("H1")
     h = ws.Rows(1).Height - 2
     If h < 18 Then h = 18
     If h > 26 Then h = 26
-    Set shp = ws.Shapes.AddFormControl(xlButtonControl, nxt.Left + 2, nxt.Top + 1, 110, h)
+    mStep = "button: create"
+    Set shp = ws.Shapes.AddFormControl(0, nxt.Left + 2, nxt.Top + 1, 110, h)    ' 0 = xlButtonControl
     shp.Name = BTN_NAME
+    mStep = "button: macro link"
     shp.OnAction = "ShowLettersForm"
-    shp.Placement = xlMove
     On Error Resume Next
+    shp.Placement = 2                               ' xlMove
     shp.TextFrame.Characters.Text = U("0625 062F 062E 0627 0644 0020 002F 0020 0628 062D 062B")
     shp.TextFrame.Characters.Font.Size = 10
     On Error GoTo 0
