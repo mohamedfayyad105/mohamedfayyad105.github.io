@@ -280,7 +280,9 @@ Public Sub FormSearch(f As Object)
     Dim res() As Variant, out() As Variant
     Set lo = GetTable()
     If lo Is Nothing Then Exit Sub
-    q = Norm(Trim$(f.txtSearch.Value))
+    q = Trim$(f.txtSearch.Value)
+    If Len(q) = 0 And mRow = 0 Then q = Trim$(f.cboCompany.Value)   ' search by the company box too
+    q = Norm(q)
     flt = Norm(Trim$(f.cboFilter.Value))
     If lo.DataBodyRange Is Nothing Then
         f.lstResults.Clear: SetCount f, 0: Exit Sub
