@@ -759,7 +759,20 @@ Private Sub AddSheetButton()
     Set shp = ws.Shapes.AddFormControl(0, nxt.Left + 2, nxt.Top + 1, 110, h)    ' 0 = xlButtonControl
     shp.Name = BTN_NAME
     mStep = "button: macro link"
-    shp.OnAction = "ShowLettersForm"
+    ' qualify with the workbook name: another workbook may be the active one
+    On Error Resume Next
+    shp.OnAction = "'" & ThisWorkbook.Name & "'!ShowLettersForm"
+    If Err.Number <> 0 Then
+        Err.Clear
+        shp.OnAction = "ShowLettersForm"
+    End If
+    If Err.Number <> 0 Then
+        Dim oaNum As Long, oaMsg As String
+        oaNum = Err.Number: oaMsg = Err.Description
+        On Error GoTo 0
+        Err.Raise oaNum, , oaMsg
+    End If
+    On Error GoTo 0
     On Error Resume Next
     shp.Placement = 2                               ' xlMove
     shp.TextFrame.Characters.Text = U("0625 062F 062E 0627 0644 0020 002F 0020 0628 062D 062B")
