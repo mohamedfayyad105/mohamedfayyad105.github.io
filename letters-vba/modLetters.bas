@@ -28,6 +28,7 @@ Private mOrigNo As String
 Private mOrigDate As String
 Private mOrigComp As String
 Private mOrigTitle As String
+Private mOrigType As String
 
 ' ---------------------------------------------------------------
 ' helpers
@@ -224,7 +225,7 @@ Public Sub FormTypeChanged(f As Object)
 End Sub
 
 Public Sub FormClear(f As Object)
-    mRow = 0: mOrigNo = "": mOrigDate = "": mOrigComp = "": mOrigTitle = ""
+    mRow = 0: mOrigNo = "": mOrigDate = "": mOrigComp = "": mOrigTitle = "": mOrigType = ""
     f.cboCompany.Value = ""
     f.txtTitle.Value = ""
     f.cboType.ListIndex = -1
@@ -341,12 +342,14 @@ Public Sub FormPick(f As Object)
     f.cboCompany.Value = Txt(rw.Cells(1, C_COMP).Value)
     f.txtTitle.Value = Txt(rw.Cells(1, C_TITLE).Value)
     f.txtNotes.Value = Txt(rw.Cells(1, C_NOTES).Value)
-    f.txtNo.Value = Txt(rw.Cells(1, C_NO).Value)
     f.txtDate.Value = Txt(rw.Cells(1, C_DATE).Value)
     mRow = r
     mOrigComp = Txt(rw.Cells(1, C_COMP).Value)
     mOrigTitle = Txt(rw.Cells(1, C_TITLE).Value)
+    mOrigType = Txt(rw.Cells(1, C_TYPE).Value)
     mOrigNo = Txt(rw.Cells(1, C_NO).Value)
+    If mOrigNo = U("0628 062F 0648 0646 0020 0631 0642 0645") Then mOrigNo = ""       ' the formula's placeholder for incoming letters
+    f.txtNo.Value = mOrigNo
     mOrigDate = Txt(rw.Cells(1, C_DATE).Value)
 End Sub
 
@@ -443,7 +446,7 @@ Public Sub FormSave(f As Object)
                 rw.Cells(1, C_NO).Value = sNo
             End If
         End If
-    ElseIf Not rw.Cells(1, C_NO).HasFormula Then
+    ElseIf Norm(mOrigType) <> Norm(Trim$(f.cboType.Value)) And Not rw.Cells(1, C_NO).HasFormula Then   ' type just changed to outgoing
         If Not RestoreFormula(lo, mRow, C_NO) Then warn = warn & U("062A 0639 0630 0631 062A 0020 0625 0639 0627 062F 0629 0020 0645 0639 0627 062F 0644 0629 0020 0631 0642 0645 0020 0627 0644 062E 0637 0627 0628 002E") & vbCrLf
     End If
     ' date (column F): only touched if the user changed it
@@ -466,8 +469,15 @@ Fail:
     MsgBox U("062A 0639 0630 0631 0020 0627 0644 062D 0641 0638 003A 0020") & Err.Description, vbCritical + MB_RTL
 End Sub
 
+Private Function HasRowsBelow(lo As ListObject, ByVal r As Long) As Boolean
+    Dim i As Long
+    For i = r + 1 To lo.ListRows.Count
+        If Len(Txt(lo.DataBodyRange.Cells(i, C_COMP).Value)) > 0 Then HasRowsBelow = True: Exit Function
+    Next i
+End Function
+
 Public Sub FormDelete(f As Object)
-    Dim lo As ListObject, rw As Range, oldScr As Boolean, warn As String
+    Dim lo As ListObject, rw As Range, oldScr As Boolean, warn As String, note As String
     If mRow = 0 Then
         MsgBox U("0627 062E 062A 0631 0020 062E 0637 0627 0628 0627 0020 0645 0646 0020 0627 0644 0642 0627 0626 0645 0629 0020 0623 0648 0644 0627 002E"), vbExclamation + MB_RTL
         Exit Sub
@@ -475,7 +485,9 @@ Public Sub FormDelete(f As Object)
     Set lo = GetTable()
     If lo Is Nothing Then Exit Sub
     If Not RowStillValid(lo) Then Exit Sub
-    If MsgBox(U("0647 0644 0020 062A 0631 064A 062F 0020 062D 0630 0641 0020 0628 064A 0627 0646 0627 062A 0020 0647 0630 0627 0020 0627 0644 062E 0637 0627 0628 061F") & vbCrLf & vbCrLf & mOrigComp & vbCrLf & mOrigTitle & vbCrLf & vbCrLf & U("0633 064A 062A 0645 0020 0645 0633 062D 0020 0627 0644 0634 0631 0643 0629 0020 0648 0627 0644 0639 0646 0648 0627 0646 0020 0648 0627 0644 0646 0648 0639 0020 0648 0627 0644 0645 0644 0627 062D 0638 0627 062A 0020 0641 0642 0637 060C 0020 0648 0644 0646 0020 064A 062D 0630 0641 0020 0627 0644 0635 0641 002E"), _
+    note = ""
+    If HasRowsBelow(lo, mRow) Then note = vbCrLf & vbCrLf & U("062A 0646 0628 064A 0647 003A 0020 0623 0631 0642 0627 0645 0020 0627 0644 062E 0637 0627 0628 0627 062A 0020 0627 0644 062A 0644 0642 0627 0626 064A 0629 0020 0627 0644 0644 0627 062D 0642 0629 0020 0642 062F 0020 062A 062A 063A 064A 0631 0020 0644 0623 0646 0020 0627 0644 062A 0631 0642 064A 0645 0020 064A 0639 062A 0645 062F 0020 0639 0644 0649 0020 062A 0631 062A 064A 0628 0020 0627 0644 0635 0641 0648 0641 002E")
+    If MsgBox(U("0647 0644 0020 062A 0631 064A 062F 0020 062D 0630 0641 0020 0628 064A 0627 0646 0627 062A 0020 0647 0630 0627 0020 0627 0644 062E 0637 0627 0628 061F") & vbCrLf & vbCrLf & mOrigComp & vbCrLf & mOrigTitle & vbCrLf & vbCrLf & U("0633 064A 062A 0645 0020 0645 0633 062D 0020 0627 0644 0634 0631 0643 0629 0020 0648 0627 0644 0639 0646 0648 0627 0646 0020 0648 0627 0644 0646 0648 0639 0020 0648 0627 0644 0645 0644 0627 062D 0638 0627 062A 0020 0641 0642 0637 060C 0020 0648 0644 0646 0020 064A 062D 0630 0641 0020 0627 0644 0635 0641 002E") & note, _
               vbYesNo + vbQuestion + vbDefaultButton2 + MB_RTL) <> vbYes Then Exit Sub
     oldScr = Application.ScreenUpdating
     On Error GoTo Fail
