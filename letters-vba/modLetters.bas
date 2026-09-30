@@ -570,6 +570,8 @@ Private Sub BuildForm(vbp As Object)
         Set comp = vbp.VBComponents(i)
         If comp.Type = 3 Then                       ' MSForm
             If comp.Name = FORM_NAME Then
+                ' Remove is only carried out when the macro ends, so free the name first
+                comp.Name = "zzOldForm" & Format$(Now, "hhmmss") & i
                 vbp.VBComponents.Remove comp
             ElseIf comp.Name Like "UserForm#*" Then
                 If comp.Designer.Controls.Count = 0 Then vbp.VBComponents.Remove comp   ' empty leftover
