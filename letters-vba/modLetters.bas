@@ -194,16 +194,36 @@ End Function
 ' ---------------------------------------------------------------
 ' launcher (sheet button)
 ' ---------------------------------------------------------------
-Public Sub ShowLettersForm()
-    Dim f As Object
+Private Function HasCtl(f As Object, ByVal nm As String) As Boolean
+    Dim c As Object
     On Error Resume Next
-    Set f = VBA.UserForms.Add(FORM_NAME)
+    Set c = f.Controls(nm)
     On Error GoTo 0
-    If f Is Nothing Then
-        MsgBox U("0627 0644 0646 0627 0641 0630 0629 0020 063A 064A 0631 0020 0645 0648 062C 0648 062F 0629 002E 0020 0634 063A 0644 0020 0627 0644 0645 0627 0643 0631 0648 0020 0053 0065 0074 0075 0070 004C 0065 0074 0074 0065 0072 0073 0020 0623 0648 0644 0627 002E"), vbExclamation + MB_RTL
-        Exit Sub
-    End If
-    f.Show
+    HasCtl = Not c Is Nothing
+End Function
+
+' the form may carry a different name if VBA refused to rename it, so look it up by its content
+Public Sub ShowLettersForm()
+    Dim f As Object, k As Long, cand As String
+    For k = 0 To 20
+        Select Case k
+            Case 0: cand = FORM_NAME
+            Case 1 To 9: cand = FORM_NAME & (k + 1)
+            Case Else: cand = "UserForm" & (k - 9)
+        End Select
+        Set f = Nothing
+        On Error Resume Next
+        Set f = VBA.UserForms.Add(cand)
+        On Error GoTo 0
+        If Not f Is Nothing Then
+            If HasCtl(f, "lstResults") Then
+                f.Show
+                Exit Sub
+            End If
+            Unload f
+        End If
+    Next k
+    MsgBox U("0627 0644 0646 0627 0641 0630 0629 0020 063A 064A 0631 0020 0645 0648 062C 0648 062F 0629 002E 0020 0634 063A 0644 0020 0053 0065 0074 0075 0070 004C 0065 0074 0074 0065 0072 0073 0020 0623 0648 0644 0627 002E"), vbExclamation + MB_RTL
 End Sub
 
 ' ---------------------------------------------------------------
@@ -561,28 +581,42 @@ Private Function AddCtl(d As Object, ByVal progId As String, ByVal nm As String,
     Set AddCtl = c
 End Function
 
+' our form from an earlier setup (any name), or an empty leftover UserForm
+Private Function IsLettersForm(comp As Object) As Boolean
+    Dim n As Long
+    If comp.Name Like FORM_NAME & "*" Or comp.Name Like "zzOldForm*" Then IsLettersForm = True: Exit Function
+    On Error Resume Next
+    n = comp.Designer.Controls.Count
+    If Err.Number <> 0 Then Exit Function
+    If HasCtl(comp.Designer, "lstResults") Then IsLettersForm = True: Exit Function
+    If n = 0 And comp.Name Like "UserForm#*" Then IsLettersForm = True
+End Function
+
 Private Sub BuildForm(vbp As Object)
-    Dim comp As Object, d As Object, c As Object, i As Long, x As Single
+    Dim comp As Object, d As Object, c As Object, i As Long, k As Long, x As Single
     Dim heads As Variant, widths As Variant
 
     mStep = "remove old form"
     For i = vbp.VBComponents.Count To 1 Step -1
         Set comp = vbp.VBComponents(i)
         If comp.Type = 3 Then                       ' MSForm
-            If comp.Name = FORM_NAME Then
-                ' Remove is only carried out when the macro ends, so free the name first
-                comp.Name = "zzOldForm" & Format$(Now, "hhmmss") & i
-                vbp.VBComponents.Remove comp
-            ElseIf comp.Name Like "UserForm#*" Then
-                If comp.Designer.Controls.Count = 0 Then vbp.VBComponents.Remove comp   ' empty leftover
-            End If
+            If IsLettersForm(comp) Then vbp.VBComponents.Remove comp   ' carried out when the macro ends
         End If
     Next i
 
     mStep = "add form"
     Set comp = vbp.VBComponents.Add(3)             ' vbext_ct_MSForm
     mStep = "rename form"
-    comp.Name = FORM_NAME
+    ' A name freed by Remove may still be reserved, so try a few names.
+    ' If none is accepted the automatic name stays; ShowLettersForm finds the form by content.
+    On Error Resume Next
+    For k = 0 To 9
+        Err.Clear
+        If k = 0 Then comp.Name = FORM_NAME Else comp.Name = FORM_NAME & (k + 1)
+        If Err.Number = 0 Then Exit For
+    Next k
+    Err.Clear
+    On Error GoTo 0
     On Error Resume Next
     comp.Properties("Caption").Value = U("0625 062F 062E 0627 0644 0020 0648 0627 0644 0628 062D 062B 0020 0641 064A 0020 0627 0644 062E 0637 0627 0628 0627 062A")
     comp.Properties("Width").Value = 910
