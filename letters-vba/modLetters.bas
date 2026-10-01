@@ -247,6 +247,18 @@ Public Sub FormInit(f As Object)
     FormSearch f
 End Sub
 
+Public Sub FormOpenFile(f As Object)
+    Dim lo As ListObject, r As Long
+    Unload f
+    Set lo = GetTable()
+    If lo Is Nothing Then Exit Sub
+    On Error Resume Next
+    ThisWorkbook.Activate
+    lo.Parent.Activate                              ' the worksheet
+    r = FirstEmptyRow(lo)
+    If r > 0 Then lo.DataBodyRange.Cells(r, C_COMP).Select
+End Sub
+
 Public Sub FormTypeChanged(f As Object)
     Dim show As Boolean
     show = IsIncoming(f)
@@ -518,6 +530,7 @@ Public Sub SetupLetters()
 
     On Error GoTo FormFail
     BuildForm vbp
+    InstallAutoOpen vbp
 
     On Error GoTo BtnFail
     mStep = "button"
@@ -560,6 +573,23 @@ Private Function IsLettersForm(comp As Object) As Boolean
     If HasCtl(comp.Designer, "lstResults") Then IsLettersForm = True: Exit Function
     If n = 0 And comp.Name Like "UserForm#*" Then IsLettersForm = True
 End Function
+
+' makes the workbook show the form by itself when it is opened
+Private Sub InstallAutoOpen(vbp As Object)
+    Dim cm As Object, txtAll As String
+    mStep = "auto-open"
+    Set cm = vbp.VBComponents("ThisWorkbook").CodeModule
+    If cm.CountOfLines > 0 Then txtAll = cm.Lines(1, cm.CountOfLines)
+    If InStr(1, txtAll, "ShowLettersForm", vbTextCompare) > 0 Then Exit Sub        ' already installed
+    If InStr(1, txtAll, "Workbook_Open", vbTextCompare) > 0 Then
+        MsgBox U("064A 0648 062C 062F 0020 062D 062F 062B 0020 0641 062A 062D 0020 0633 0627 0628 0642 0020 0641 064A 0020 0054 0068 0069 0073 0057 006F 0072 006B 0062 006F 006F 006B 0020 0648 0644 0645 0020 0623 063A 064A 0631 0647 060C 0020 0644 0630 0644 0643 0020 0644 0646 0020 062A 0638 0647 0631 0020 0627 0644 0646 0627 0641 0630 0629 0020 062A 0644 0642 0627 0626 064A 0627 0020 0639 0646 062F 0020 0641 062A 062D 0020 0627 0644 0645 0644 0641 002E"), vbExclamation + MB_RTL
+        Exit Sub
+    End If
+    ' OnTime lets the workbook finish opening before the form appears
+    cm.AddFromString "Private Sub Workbook_Open()" & vbCrLf & _
+        "    Application.OnTime Now + TimeSerial(0, 0, 1), ""'"" & ThisWorkbook.Name & ""'!ShowLettersForm""" & vbCrLf & _
+        "End Sub"
+End Sub
 
 Private Sub Paint(c As Object, ByVal back As Long, ByVal fore As Long, Optional ByVal bold As Boolean = False)
     On Error Resume Next
@@ -683,12 +713,12 @@ Private Sub BuildForm(vbp As Object)
 
     ' --- buttons, right to left ---
     Dim caps As Variant, names As Variant, backs As Variant, fores As Variant
-    names = Array("cmdAdd", "cmdSearch", "cmdSave", "cmdClear", "cmdDelete", "cmdClose")
-    caps = Array(U("0625 0636 0627 0641 0629"), U("0628 062D 062B"), U("062D 0641 0638 0020 0627 0644 062A 0639 062F 064A 0644"), U("0645 0633 062D 0020 0627 0644 062E 0627 0646 0627 062A"), U("062D 0630 0641"), U("0625 063A 0644 0627 0642"))
-    backs = Array(CLR_TEAL, CLR_TEAL_MID, CLR_TEAL, CLR_PALE, CLR_DANGER, CLR_PALE)
-    fores = Array(CLR_WHITE, CLR_WHITE, CLR_WHITE, CLR_TEAL, CLR_WHITE, CLR_TEAL)
-    For i = 0 To 5
-        Set c = AddCtl(d, "Forms.CommandButton.1", CStr(names(i)), 755 - i * 135, 210, 125, 32, CStr(caps(i)))
+    names = Array("cmdAdd", "cmdSearch", "cmdSave", "cmdClear", "cmdDelete", "cmdClose", "cmdOpenFile")
+    caps = Array(U("0625 0636 0627 0641 0629"), U("0628 062D 062B"), U("062D 0641 0638 0020 0627 0644 062A 0639 062F 064A 0644"), U("0645 0633 062D 0020 0627 0644 062E 0627 0646 0627 062A"), U("062D 0630 0641"), U("0625 063A 0644 0627 0642"), U("0641 062A 062D 0020 0627 0644 0645 0644 0641"))
+    backs = Array(CLR_TEAL, CLR_TEAL_MID, CLR_TEAL, CLR_PALE, CLR_DANGER, CLR_PALE, CLR_PALE)
+    fores = Array(CLR_WHITE, CLR_WHITE, CLR_WHITE, CLR_TEAL, CLR_WHITE, CLR_TEAL, CLR_TEAL)
+    For i = 0 To 6
+        Set c = AddCtl(d, "Forms.CommandButton.1", CStr(names(i)), 768 - i * 122, 210, 112, 32, CStr(caps(i)))
         Paint c, CLng(backs(i)), CLng(fores(i)), True
     Next i
 
@@ -753,6 +783,9 @@ Private Function FormCode() As String
     s = s & "End Sub" & vbCrLf
     s = s & "Private Sub cmdClose_Click()" & vbCrLf
     s = s & "    Unload Me" & vbCrLf
+    s = s & "End Sub" & vbCrLf
+    s = s & "Private Sub cmdOpenFile_Click()" & vbCrLf
+    s = s & "    FormOpenFile Me" & vbCrLf
     s = s & "End Sub" & vbCrLf
     s = s & "Private Sub cboType_Change()" & vbCrLf
     s = s & "    FormTypeChanged Me" & vbCrLf
