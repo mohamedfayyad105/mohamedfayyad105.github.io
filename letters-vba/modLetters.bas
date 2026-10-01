@@ -603,57 +603,80 @@ Private Sub BuildForm(vbp As Object)
     On Error Resume Next
     comp.Properties("Caption").Value = U("0625 062F 062E 0627 0644 0020 0648 0627 0644 0628 062D 062B 0020 0641 064A 0020 0627 0644 062E 0637 0627 0628 0627 062A")
     comp.Properties("Width").Value = 910
-    comp.Properties("Height").Value = 545
+    comp.Properties("Height").Value = 555
     comp.Properties("StartUpPosition").Value = 1
     comp.Properties("RightToLeft").Value = True
     comp.Properties("BackColor").Value = CLR_BG
     On Error GoTo 0
     Set d = comp.Designer
 
-    ' --- brand header band ---
-    Set c = AddCtl(d, "Forms.Label.1", "lblBand", 0, 0, 910, 44)
-    Paint c, CLR_TEAL, CLR_WHITE
-    Set c = AddCtl(d, "Forms.Label.1", "lblBrand", 440, 9, 440, 26, U("0634 0631 0643 0629 0020 0639 0644 064A 0020 0627 0628 0631 0627 0647 064A 0645 0020 0627 0644 0631 0628 064A 0634 064A 0020 0627 0644 0639 0642 0627 0631 064A 0629"))
-    Paint c, CLR_TEAL, CLR_WHITE, True
+    ' --- header band: white with the logo, teal rule underneath ---
+    Set c = AddCtl(d, "Forms.Label.1", "lblBand", 0, 0, 910, 72)
+    Paint c, CLR_WHITE, CLR_WHITE
+    Set c = AddCtl(d, "Forms.Label.1", "lblBandLine", 0, 72, 910, 4)
+    Paint c, CLR_TEAL, CLR_TEAL
+    Set c = AddCtl(d, "Forms.Label.1", "lblBrand", 440, 22, 440, 28, U("0634 0631 0643 0629 0020 0639 0644 064A 0020 0627 0628 0631 0627 0647 064A 0645 0020 0627 0644 0631 0628 064A 0634 064A 0020 0627 0644 0639 0642 0627 0631 064A 0629"))
+    Paint c, CLR_WHITE, CLR_TEAL, True
     On Error Resume Next
     c.BackStyle = 0: c.Font.Size = 16
     On Error GoTo 0
-    Set c = AddCtl(d, "Forms.Label.1", "lblSub", 15, 13, 380, 20, U("0627 0644 062E 0637 0627 0628 0627 062A 0020 0627 0644 0635 0627 062F 0631 0629 0020 0648 0627 0644 0648 0627 0631 062F 0629"))
-    Paint c, CLR_TEAL, &HD6D2B4
+    Set c = AddCtl(d, "Forms.Label.1", "lblSub", 15, 24, 380, 26, U("0627 0644 062E 0637 0627 0628 0627 062A 0020 0627 0644 0635 0627 062F 0631 0629 0020 0648 0627 0644 0648 0627 0631 062F 0629"))
+    Paint c, CLR_WHITE, CLR_TEAL_MID, True
     On Error Resume Next
-    c.BackStyle = 0: c.TextAlign = 1: c.Font.Size = 11
+    c.BackStyle = 0: c.TextAlign = 1: c.Font.Size = 16
+    On Error GoTo 0
+
+    ' --- logo: embedded into the form now, so the file is not needed afterwards ---
+    mStep = "logo"
+    Dim fso As Object, logoPath As String, logoOk As Boolean
+    On Error Resume Next
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    logoPath = ThisWorkbook.Path & "\Logo.png"
+    If Not fso.FileExists(logoPath) Then logoPath = U("0043 003A 005C 0055 0073 0065 0072 0073 005C 004D 006F 0068 0061 006D 006D 0065 0064 0046 0061 0079 0079 0061 0064 005C 004F 006E 0065 0044 0072 0069 0076 0065 0020 002D 0020 0041 006C 0072 0075 0062 0061 0069 0073 0068 0069 0020 0048 006F 006C 0064 0069 006E 0067 0020 0043 006F 006D 0070 0061 006E 0079 005C 0627 0644 0631 0628 064A 0634 064A 0020 0627 0644 0639 0642 0627 0631 064A 0629 005C 0627 0644 0634 0624 0648 0646 0020 0627 0644 0625 062F 0627 0631 064A 0629 005C 062E 0637 0627 0628 0627 062A 005C 004C 006F 0067 006F 002E 0070 006E 0067")
+    If fso.FileExists(logoPath) Then
+        Err.Clear
+        Set c = AddCtl(d, "Forms.Image.1", "imgLogo", 745, 4, 135, 64)
+        c.Picture = LoadPicture(logoPath)
+        c.PictureSizeMode = 1                       ' zoom, keeps the proportions
+        c.BackStyle = 0
+        c.BorderStyle = 0
+        logoOk = (Err.Number = 0)
+        If Not logoOk Then c.Visible = False
+    End If
+    Err.Clear
+    d.Controls("lblBrand").Visible = Not logoOk     ' company name text only when there is no logo
     On Error GoTo 0
 
     ' --- inputs: right pair (label L=775, input L=485) / left pair (label L=310, input L=15) ---
-    Ink AddCtl(d, "Forms.Label.1", "lblCompany", 775, 62, 105, 18, U("0627 0644 0634 0631 0643 0629 0020 002F 0020 0627 0644 062C 0647 0629"))
-    Set c = AddCtl(d, "Forms.ComboBox.1", "cboCompany", 485, 60, 290, 22)
+    Ink AddCtl(d, "Forms.Label.1", "lblCompany", 775, 90, 105, 18, U("0627 0644 0634 0631 0643 0629 0020 002F 0020 0627 0644 062C 0647 0629"))
+    Set c = AddCtl(d, "Forms.ComboBox.1", "cboCompany", 485, 88, 290, 22)
     On Error Resume Next
     c.Style = 0: c.MatchEntry = 1                  ' free text + auto-complete from previous companies
     On Error GoTo 0
 
-    Ink AddCtl(d, "Forms.Label.1", "lblType", 310, 62, 105, 18, U("0635 0627 062F 0631 0020 002F 0020 0648 0627 0631 062F"))
-    Set c = AddCtl(d, "Forms.ComboBox.1", "cboType", 15, 60, 290, 22)
+    Ink AddCtl(d, "Forms.Label.1", "lblType", 310, 90, 105, 18, U("0635 0627 062F 0631 0020 002F 0020 0648 0627 0631 062F"))
+    Set c = AddCtl(d, "Forms.ComboBox.1", "cboType", 15, 88, 290, 22)
     On Error Resume Next
     c.Style = 2                                    ' drop-down list only
     On Error GoTo 0
 
-    Ink AddCtl(d, "Forms.Label.1", "lblTitle", 775, 96, 105, 18, U("0639 0646 0648 0627 0646 0020 0627 0644 062E 0637 0627 0628"))
-    AddCtl d, "Forms.TextBox.1", "txtTitle", 485, 94, 290, 22
+    Ink AddCtl(d, "Forms.Label.1", "lblTitle", 775, 124, 105, 18, U("0639 0646 0648 0627 0646 0020 0627 0644 062E 0637 0627 0628"))
+    AddCtl d, "Forms.TextBox.1", "txtTitle", 485, 122, 290, 22
 
-    Ink AddCtl(d, "Forms.Label.1", "lblNo", 310, 96, 105, 18, U("0631 0642 0645 0020 0627 0644 062E 0637 0627 0628"))
-    AddCtl d, "Forms.TextBox.1", "txtNo", 15, 94, 290, 22
+    Ink AddCtl(d, "Forms.Label.1", "lblNo", 310, 124, 105, 18, U("0631 0642 0645 0020 0627 0644 062E 0637 0627 0628"))
+    AddCtl d, "Forms.TextBox.1", "txtNo", 15, 122, 290, 22
     d.Controls("lblNo").Visible = False
     d.Controls("txtNo").Visible = False
     d.Controls("txtNo").ControlTipText = U("0644 0644 062E 0637 0627 0628 0020 0627 0644 0648 0627 0631 062F 0020 0641 0642 0637 0020 002D 0020 0627 062E 062A 064A 0627 0631 064A 002E 0020 0627 062A 0631 0643 0647 0020 0641 0627 0631 063A 0627 0020 0644 064A 0628 0642 0649 0020 0627 0644 0631 0642 0645 0020 0627 0644 062A 0644 0642 0627 0626 064A 002E")
 
     ' --- search row ---
-    Set c = AddCtl(d, "Forms.Label.1", "lblRule", 15, 130, 865, 1)
+    Set c = AddCtl(d, "Forms.Label.1", "lblRule", 15, 158, 865, 1)
     Paint c, CLR_LINE, CLR_LINE
-    Ink AddCtl(d, "Forms.Label.1", "lblSearch", 775, 146, 105, 18, U("0628 062D 062B 0020 0639 0646"))
-    AddCtl d, "Forms.TextBox.1", "txtSearch", 485, 144, 290, 22
+    Ink AddCtl(d, "Forms.Label.1", "lblSearch", 775, 174, 105, 18, U("0628 062D 062B 0020 0639 0646"))
+    AddCtl d, "Forms.TextBox.1", "txtSearch", 485, 172, 290, 22
     d.Controls("txtSearch").ControlTipText = U("062C 0632 0621 0020 0645 0646 0020 0627 0644 0634 0631 0643 0629 0020 0623 0648 0020 0627 0644 0631 0642 0645 0020 0623 0648 0020 0627 0644 0639 0646 0648 0627 0646 0020 0623 0648 0020 0627 0644 0645 0644 0627 062D 0638 0627 062A 0020 0623 0648 0020 0627 0644 062A 0627 0631 064A 062E")
-    Ink AddCtl(d, "Forms.Label.1", "lblFilter", 310, 146, 105, 18, U("062A 0635 0641 064A 0629 0020 0627 0644 0646 0648 0639"))
-    AddCtl d, "Forms.ComboBox.1", "cboFilter", 15, 144, 290, 22
+    Ink AddCtl(d, "Forms.Label.1", "lblFilter", 310, 174, 105, 18, U("062A 0635 0641 064A 0629 0020 0627 0644 0646 0648 0639"))
+    AddCtl d, "Forms.ComboBox.1", "cboFilter", 15, 172, 290, 22
     On Error Resume Next
     d.Controls("cboFilter").Style = 2
     On Error GoTo 0
@@ -665,7 +688,7 @@ Private Sub BuildForm(vbp As Object)
     backs = Array(CLR_TEAL, CLR_TEAL_MID, CLR_TEAL, CLR_PALE, CLR_DANGER, CLR_PALE)
     fores = Array(CLR_WHITE, CLR_WHITE, CLR_WHITE, CLR_TEAL, CLR_WHITE, CLR_TEAL)
     For i = 0 To 5
-        Set c = AddCtl(d, "Forms.CommandButton.1", CStr(names(i)), 755 - i * 135, 182, 125, 32, CStr(caps(i)))
+        Set c = AddCtl(d, "Forms.CommandButton.1", CStr(names(i)), 755 - i * 135, 210, 125, 32, CStr(caps(i)))
         Paint c, CLng(backs(i)), CLng(fores(i)), True
     Next i
 
@@ -675,14 +698,14 @@ Private Sub BuildForm(vbp As Object)
     x = 877                                        ' right edge of the list's inner area
     For i = 0 To 5
         x = x - widths(i)
-        Set c = AddCtl(d, "Forms.Label.1", "lblHead" & i, x, 228, widths(i), 20, CStr(heads(i)))
+        Set c = AddCtl(d, "Forms.Label.1", "lblHead" & i, x, 256, widths(i), 20, CStr(heads(i)))
         Paint c, CLR_TEAL, CLR_WHITE, True
         On Error Resume Next
         c.TextAlign = 2: c.BorderStyle = 0
         On Error GoTo 0
     Next i
 
-    Set c = AddCtl(d, "Forms.ListBox.1", "lstResults", 15, 248, 865, 232)
+    Set c = AddCtl(d, "Forms.ListBox.1", "lstResults", 15, 276, 865, 210)
     On Error Resume Next
     c.RightToLeft = True
     c.ColumnCount = 7
@@ -695,13 +718,13 @@ Private Sub BuildForm(vbp As Object)
         x = x - widths(i)
         mStep = "grid line " & i
         Set c = d.Controls.Add("Forms.Label.1", "lnSep" & i, True)
-        c.Left = x: c.Top = 250: c.Width = 1: c.Height = 228
+        c.Left = x: c.Top = 278: c.Width = 1: c.Height = 206
         On Error Resume Next
         c.Caption = "": c.BackColor = CLR_LINE: c.BorderStyle = 0: c.SpecialEffect = 0
         On Error GoTo 0
     Next i
 
-    Set c = AddCtl(d, "Forms.Label.1", "lblCount", 15, 488, 865, 16, U("0639 062F 062F 0020 0627 0644 0646 062A 0627 0626 062C 003A 0020 0030"))
+    Set c = AddCtl(d, "Forms.Label.1", "lblCount", 15, 492, 865, 16, U("0639 062F 062F 0020 0627 0644 0646 062A 0627 0626 062C 003A 0020 0030"))
     Ink c
 
     mStep = "form code"
