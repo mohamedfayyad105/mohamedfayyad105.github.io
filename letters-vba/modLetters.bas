@@ -38,6 +38,8 @@ Private mOrigDate As String
 Private mOrigComp As String
 Private mOrigTitle As String
 Private mOrigType As String
+Private mLogoNote As String
+Private mLogoErr As String
 Private mStep As String                 ' last setup step, shown if setup fails
 
 ' ---------------------------------------------------------------
@@ -535,7 +537,7 @@ Public Sub SetupLetters()
     On Error GoTo BtnFail
     mStep = "button"
     AddSheetButton
-    MsgBox U("062A 0645 0020 0625 0646 0634 0627 0621 0020 0627 0644 0646 0627 0641 0630 0629 0020 0648 0627 0644 0632 0631 002E 0020 0627 0636 063A 0637 0020 0632 0631 0020 0625 062F 062E 0627 0644 0020 002F 0020 0628 062D 062B 0020 0641 064A 0020 0627 0644 0635 0641 0020 0627 0644 0623 0648 0644 002E"), vbInformation + MB_RTL
+    MsgBox U("062A 0645 0020 0625 0646 0634 0627 0621 0020 0627 0644 0646 0627 0641 0630 0629 0020 0648 0627 0644 0632 0631 002E 0020 0627 0636 063A 0637 0020 0632 0631 0020 0625 062F 062E 0627 0644 0020 002F 0020 0628 062D 062B 0020 0641 064A 0020 0627 0644 0635 0641 0020 0627 0644 0623 0648 0644 002E") & IIf(Len(mLogoNote) > 0, vbCrLf & vbCrLf & mLogoNote, ""), vbInformation + MB_RTL
     Exit Sub
 
 FormFail:
@@ -590,6 +592,29 @@ Private Sub InstallAutoOpen(vbp As Object)
         "    Application.OnTime Now + TimeSerial(0, 0, 1), ""'"" & ThisWorkbook.Name & ""'!ShowLettersForm""" & vbCrLf & _
         "End Sub"
 End Sub
+
+' loads a picture; PNG goes through a temporary chart that exports it as GIF
+Private Function LoadLogoPicture(ByVal path As String) As Object
+    Dim co As Object, tmp As String, ws As Worksheet
+    mLogoErr = ""
+    On Error Resume Next
+    Set LoadLogoPicture = LoadPicture(path)
+    If Not LoadLogoPicture Is Nothing Then Exit Function
+    mLogoErr = "LoadPicture: " & Err.Description
+    Err.Clear
+    tmp = Environ$("TEMP") & "\lettersLogo.gif"
+    Set ws = ThisWorkbook.Worksheets(U("0627 0644 0639 0642 0627 0631 064A 0629"))
+    Set co = ws.ChartObjects.Add(0, 0, 270, 130)
+    co.Chart.ChartArea.Format.Fill.UserPicture path
+    co.Chart.ChartArea.Format.Line.Visible = 0
+    co.Chart.Export tmp, "GIF"
+    If Err.Number <> 0 Then mLogoErr = mLogoErr & " / chart: " & Err.Description: Err.Clear
+    co.Delete
+    Err.Clear
+    Set LoadLogoPicture = LoadPicture(tmp)
+    If LoadLogoPicture Is Nothing Then mLogoErr = mLogoErr & " / gif: " & Err.Description
+    Kill tmp
+End Function
 
 Private Sub Paint(c As Object, ByVal back As Long, ByVal fore As Long, Optional ByVal bold As Boolean = False)
     On Error Resume Next
@@ -658,20 +683,31 @@ Private Sub BuildForm(vbp As Object)
 
     ' --- logo: embedded into the form now, so the file is not needed afterwards ---
     mStep = "logo"
-    Dim fso As Object, logoPath As String, logoOk As Boolean
+    Dim fso As Object, logoPath As String, logoOk As Boolean, pic As Object
+    mLogoNote = ""
     On Error Resume Next
     Set fso = CreateObject("Scripting.FileSystemObject")
     logoPath = ThisWorkbook.Path & "\Logo.png"
     If Not fso.FileExists(logoPath) Then logoPath = U("0043 003A 005C 0055 0073 0065 0072 0073 005C 004D 006F 0068 0061 006D 006D 0065 0064 0046 0061 0079 0079 0061 0064 005C 004F 006E 0065 0044 0072 0069 0076 0065 0020 002D 0020 0041 006C 0072 0075 0062 0061 0069 0073 0068 0069 0020 0048 006F 006C 0064 0069 006E 0067 0020 0043 006F 006D 0070 0061 006E 0079 005C 0627 0644 0631 0628 064A 0634 064A 0020 0627 0644 0639 0642 0627 0631 064A 0629 005C 0627 0644 0634 0624 0648 0646 0020 0627 0644 0625 062F 0627 0631 064A 0629 005C 062E 0637 0627 0628 0627 062A 005C 004C 006F 0067 006F 002E 0070 006E 0067")
-    If fso.FileExists(logoPath) Then
+    If Not fso.FileExists(logoPath) Then
+        mLogoNote = U("0644 0645 0020 0623 062C 062F 0020 0645 0644 0641 0020 004C 006F 0067 006F 002E 0070 006E 0067 0020 0641 064A 0020 0645 062C 0644 062F 0020 0627 0644 0645 0644 0641 0020 0648 0644 0627 0020 0641 064A 0020 0627 0644 0645 0633 0627 0631 0020 0627 0644 0645 062D 062F 062F 060C 0020 0641 0638 0647 0631 0020 0627 0633 0645 0020 0627 0644 0634 0631 0643 0629 0020 0646 0635 0627 0020 0628 062F 0644 0020 0627 0644 0634 0639 0627 0631 002E")
+    Else
         Err.Clear
-        Set c = AddCtl(d, "Forms.Image.1", "imgLogo", 745, 4, 135, 64)
-        c.Picture = LoadPicture(logoPath)
-        c.PictureSizeMode = 1                       ' zoom, keeps the proportions
-        c.BackStyle = 0
-        c.BorderStyle = 0
-        logoOk = (Err.Number = 0)
-        If Not logoOk Then c.Visible = False
+        Set pic = LoadLogoPicture(logoPath)
+        If pic Is Nothing Then
+            mLogoNote = U("0648 062C 062F 062A 0020 004C 006F 0067 006F 002E 0070 006E 0067 0020 0644 0643 0646 0020 062A 0639 0630 0631 0020 062A 062D 0645 064A 0644 0647 003A 0020") & mLogoErr
+        Else
+            Set c = AddCtl(d, "Forms.Image.1", "imgLogo", 745, 4, 135, 64)
+            c.Picture = pic
+            c.PictureSizeMode = 1                   ' zoom, keeps the proportions
+            c.BackStyle = 0
+            c.BorderStyle = 0
+            logoOk = (Err.Number = 0)
+            If Not logoOk Then
+                c.Visible = False
+                mLogoNote = U("062A 0639 0630 0631 0020 0648 0636 0639 0020 0627 0644 0634 0639 0627 0631 0020 0641 064A 0020 0627 0644 0646 0627 0641 0630 0629 003A 0020") & Err.Description
+            End If
+        End If
     End If
     Err.Clear
     d.Controls("lblBrand").Visible = Not logoOk     ' company name text only when there is no logo
@@ -741,18 +777,6 @@ Private Sub BuildForm(vbp As Object)
     c.ColumnCount = 7
     c.ColumnWidths = "45;135;170;330;60;90;0"
     On Error GoTo 0
-
-    ' --- vertical grid lines between the columns (a ListBox cannot draw them itself) ---
-    x = 877
-    For i = 0 To 4
-        x = x - widths(i)
-        mStep = "grid line " & i
-        Set c = d.Controls.Add("Forms.Label.1", "lnSep" & i, True)
-        c.Left = x: c.Top = 278: c.Width = 1: c.Height = 206
-        On Error Resume Next
-        c.Caption = "": c.BackColor = CLR_LINE: c.BorderStyle = 0: c.SpecialEffect = 0
-        On Error GoTo 0
-    Next i
 
     Set c = AddCtl(d, "Forms.Label.1", "lblCount", 15, 492, 865, 16, U("0639 062F 062F 0020 0627 0644 0646 062A 0627 0626 062C 003A 0020 0030"))
     Ink c
